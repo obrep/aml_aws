@@ -41,8 +41,10 @@ Resources:
         Statement:
           - Sid: 0
             Effect: Allow
-            Action: 's3:GetObject'
-            Resource: 'arn:aws:kinesis:us-east-1:334214723637:stream/aml-project-stream-*'
+            Action:
+              - 's3:GetObject'
+              - 's3:HeadObject'
+            Resource: 'arn:aws:s3:::aml-project-storage/*'
       Roles:
         - !Ref ProducerRole
   SSMAccess:
