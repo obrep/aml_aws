@@ -26,10 +26,10 @@ Resources:
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Sid: VisualEditor0
+          - Sid: 0
             Effect: Allow
             Action: 'kinesis:PutRecord'
-            Resource: 'arn:aws:kinesis:us-east-1:334214723637:stream/aml-project-stream-*'
+            Resource: 'arn:aws:kinesis:us-east-1:334214723637:stream/aml-project-*'
       Roles:
         - !Ref ProducerRole
   S3ReadAccess:
