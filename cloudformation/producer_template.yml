@@ -1,0 +1,122 @@
+Description: Starts EC2 instance - data generator (producer)
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access into machines
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t2.micro
+      - t3.micro
+    ConstraintDescription: Must be one of the possible free tier instances
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-0885b1f6bd170450c
+    us-east-2:
+      AMI: ami-0a91cd140a1fc148a
+Resources:
+  KinesisPutAccess:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: ProducerKinesisAccess
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: VisualEditor0
+            Effect: Allow
+            Action: 'kinesis:PutRecord'
+            Resource: 'arn:aws:kinesis:us-east-1:334214723637:stream/aml-project-stream-*'
+      Roles:
+        - !Ref ProducerRole
+  S3ReadAccess:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: S3ReadAccess
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: 0
+            Effect: Allow
+            Action: 's3:GetObject'
+            Resource: 'arn:aws:kinesis:us-east-1:334214723637:stream/aml-project-stream-*'
+      Roles:
+        - !Ref ProducerRole
+  SSMAccess:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: SSMReadAccess
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: 0
+            Effect: Allow
+            Action: 'ssm:GetParameter'
+            Resource: 'arn:aws:ssm:us-east-1:334214723637:parameter/*'
+      Roles:
+        - !Ref ProducerRole
+  ProducerInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+        - !Ref ProducerRole
+  ProducerRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+  ProducerSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: "ProducentSecurityGroup"
+      GroupDescription: "Security Group with SSH access enabled"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+  ProducerEC2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      SecurityGroupIds:
+        - !Ref ProducerSG
+      KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref ProducerInstanceProfile
+      ImageId: !FindInMap
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - AMI
+      Tags:
+        - Key: Name
+          Value: Producer
+      UserData: !Base64
+        'Fn::Sub': |
+          #!/bin/bash
+          set -x
+          # Clone the library
+          git clone https://github.com/PabloOb/aml_project /home/ubuntu/aml_project
+          cd /home/ubuntu/aml_project/scripts
+          chmod +x run_producer.sh
+          ./run_producer.sh
+
+    DependsOn:
+      - ProducerSG
+      - ProducerInstanceProfile
+Outputs:
+  ProducerEC2PublicDNSName:
+    Description: Public DNS Name the Producer EC2 instance
+    Value: !GetAtt
+      - ProducerEC2
+      - PublicDnsName
