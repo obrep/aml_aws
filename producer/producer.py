@@ -47,9 +47,10 @@ def main():
 
     kinesis_client = boto3.client("kinesis", REGION)
     with open(FILENAME) as f:
-        while True:
+        for _ in range(100):
             record = f.readline()
             input_dict = dict(zip(input_columns, record.strip("\n").split(",")))
+
             resp = kinesis_client.put_record(
                 StreamName=stream_name, Data=json.dumps(input_dict), PartitionKey="1"
             )

@@ -3,3 +3,4 @@ set -x
 sudo apt install python3-pip -y
 cd ../producer
 pip install -r requirements.txt
+python3 producer.py
