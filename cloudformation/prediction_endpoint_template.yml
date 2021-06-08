@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Create Prediction Endpoint for the aml-project. Will also create an execution
+  role with access to sagemaker and chosen bucket
+
+
+Parameters:
+  InstanceType:
+    Description: Endpoint instance type
+    Type: String
+    Default: ml.t2.medium
+    AllowedValues:
+      - ml.t2.medium
+      - ml.m4.xlarge
+      - ml.m5.xlarge
+    ConstraintDescription: 'Must be one of the possible free tier instances, or smallest possible'
+  ModelLocation:
+    Description: Model location
+    Type: String
+    Default: >-
+      s3://aml-project-storage/model/xgboost/20210607/sagemaker-xgboost-2021-06-07-10-05-42-011/output/model.tar.gz
+  Bucket:
+    Description: Bucket with the model
+    Type: String
+    Default: aml-project-storage
+
+
+Resources:
+  ExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sagemaker.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AmazonSageMakerFullAccess'
+      Path: /service-role/
+      Policies:
+        - PolicyName: SageMakerS3BucketAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                Resource:
+                  - !Sub 'arn:aws:s3:::${Bucket}'
+                  - !Sub 'arn:aws:s3:::${Bucket}/*'
+
+  Model:
+    Type: 'AWS::SageMaker::Model'
+    Properties:
+      PrimaryContainer:
+        Image: >-
+          683313688378.dkr.ecr.us-east-1.amazonaws.com/sagemaker-xgboost:0.90-1-cpu-py3
+        Mode: SingleModel
+        ModelDataUrl: !Ref ModelLocation
+      ExecutionRoleArn: !GetAtt
+        - ExecutionRole
+        - Arn
+      Tags:
+        - Key: Project
+          Value: aml-project
+
+  EndpointConfig:
+    Type: 'AWS::SageMaker::EndpointConfig'
+    Properties:
+      ProductionVariants:
+        - ModelName: !GetAtt
+          - Model
+          - ModelName
+          VariantName: aml-prediction-model
+          InitialInstanceCount: 1
+          InitialVariantWeight: 1
+          InstanceType: !Ref InstanceType
+
+      Tags:
+        - Key: Project
+          Value: aml-project
+    DependsOn:
+      - Model
+
+  Endpoint:
+    Type: 'AWS::SageMaker::Endpoint'
+    Properties:
+      EndpointName: aml-project-prediction-endpoint
+      EndpointConfigName: !GetAtt
+        - EndpointConfig
+        - EndpointConfigName
+      Tags:
+        - Key: Project
+          Value: aml-project
+    DependsOn:
+      - EndpointConfig
+
+
+Outputs:
+  EndpointId:
+    Value: !Ref Endpoint
+  EndpointName:
+    Value: !GetAtt
+      - Endpoint
+      - EndpointName

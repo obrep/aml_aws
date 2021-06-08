@@ -32,6 +32,7 @@ Resources:
             Resource: 'arn:aws:kinesis:us-east-1:334214723637:stream/aml-project-*'
       Roles:
         - !Ref ProducerRole
+
   S3ReadAccess:
     Type: 'AWS::IAM::Policy'
     Properties:
@@ -47,6 +48,7 @@ Resources:
             Resource: 'arn:aws:s3:::aml-project-storage/*'
       Roles:
         - !Ref ProducerRole
+
   SSMAccess:
     Type: 'AWS::IAM::Policy'
     Properties:
@@ -60,11 +62,13 @@ Resources:
             Resource: 'arn:aws:ssm:us-east-1:334214723637:parameter/*'
       Roles:
         - !Ref ProducerRole
+
   ProducerInstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
       Roles:
         - !Ref ProducerRole
+
   ProducerRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -78,6 +82,7 @@ Resources:
           Action:
           - sts:AssumeRole
       Path: "/"
+
   ProducerSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -88,6 +93,7 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+
   ProducerEC2:
     Type: 'AWS::EC2::Instance'
     Properties:
@@ -108,14 +114,15 @@ Resources:
           #!/bin/bash
           set -x
           # Clone the library
-          git clone https://github.com/PabloOb/aml_project /home/ubuntu/aml_project
+          git clone https://github.com/PabloOb/aml_aws /home/ubuntu/aml_project
           cd /home/ubuntu/aml_project/scripts
           chmod +x run_producer.sh
           ./run_producer.sh
-
     DependsOn:
       - ProducerSG
       - ProducerInstanceProfile
+
+
 Outputs:
   ProducerEC2PublicDNSName:
     Description: Public DNS Name the Producer EC2 instance
