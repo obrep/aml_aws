@@ -6,7 +6,7 @@ on:
     - main
 
 jobs:
-  deploy:
+  push_templates_to_s3:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
