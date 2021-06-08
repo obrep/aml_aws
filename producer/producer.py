@@ -20,6 +20,7 @@ input_columns = [
 
 
 def get_records_from_s3(bucket: str, s3_path: str, local_path: str):
+    print(f"Downloading from S3: {bucket}/{path} to {local_path}")
     s3_client = boto3.client("s3")
     s3_client.download_file(bucket, s3_path, local_path)
 
@@ -43,9 +44,12 @@ def main():
     )
 
     if not os.path.isfile(FILENAME):
+        print(f"Did not find {FILENAME} locally")
         get_records_from_s3(bucket, prefix, FILENAME)
 
     kinesis_client = boto3.client("kinesis", REGION)
+    print("Setup completed. Starting event production\n")
+
     with open(FILENAME) as f:
         for _ in range(100):
             record = f.readline()
