@@ -51,15 +51,16 @@ def main():
     print("Setup completed. Starting event production\n")
 
     with open(FILENAME) as f:
-        for _ in range(100):
+        while True:
             record = f.readline()
             input_dict = dict(zip(input_columns, record.strip("\n").split(",")))
 
             resp = kinesis_client.put_record(
                 StreamName=stream_name, Data=json.dumps(input_dict), PartitionKey="1"
             )
+            print(f"RECORD: {record}")
             print(resp)
-            time.sleep(0.1)
+            time.sleep(0.5)
 
 
 if __name__ == "__main__":
